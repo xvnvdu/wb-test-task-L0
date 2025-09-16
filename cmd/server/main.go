@@ -3,17 +3,31 @@ package main
 import (
 	"log"
 	"net/http"
-
 	"orders/internal/app"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	myApp := &app.App{}
+	godotenv.Load()
+
+	dbURL := os.Getenv("GOOSE_DBSTRING")
+	if dbURL == "" {
+		log.Fatalln("GOOSE_DBSTRING is not found")
+	}
+
+	myApp, err := app.NewApp("postgres", dbURL)
+	if err != nil {
+		log.Fatalln("Can't create db connection:", err)
+	}
+	defer myApp.DB.Close()
+
 	http.HandleFunc("/", myApp.HomeHandler)
 
-	log.Println("Сервер запущен на http://localhost:8080")
+	log.Println("Server is running on http://localhost:8080")
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatalln("Ошибка запуска сервера:", err)
+		log.Fatalln("Can't start the server:", err)
 	}
 }
