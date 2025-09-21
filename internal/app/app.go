@@ -22,12 +22,115 @@ func (a *App) HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *App) ShowOrdersHandler(w http.ResponseWriter, r *http.Request) {
+	queries := db.New(a.DB)
+
+	orders, err := queries.GetOrders(r.Context())
+	if err != nil {
+		log.Fatalln("Error getting orders:", err)
+	}
+
+	deliveries, err := queries.GetDelivery(r.Context())
+	if err != nil {
+		log.Fatalln("Error getting deliveries:", err)
+	}
+
+	payments, err := queries.GetPayment(r.Context())
+	if err != nil {
+		log.Fatalln("Error getting payments:", err)
+	}
+
+	items, err := queries.GetItems(r.Context())
+	if err != nil {
+		log.Fatalln("Error getting items:", err)
+	}
+
+	deliveriesMap := make(map[string]generator.Delivery)
+	paymentsMap := make(map[string]generator.Payment)
+	itemsMap := make(map[string][]generator.Item)
+
+	for _, delivery := range deliveries {
+		deliveriesMap[delivery.OrderUid] = generator.Delivery{
+			Name:    delivery.Name,
+			Phone:   delivery.Phone,
+			Zip:     delivery.Zip,
+			City:    delivery.City,
+			Address: delivery.Address,
+			Region:  delivery.Region,
+			Email:   delivery.Email,
+		}
+	}
+
+	for _, payment := range payments {
+		paymentsMap[payment.OrderUid] = generator.Payment{
+			Transaction:  payment.Transaction,
+			RequestID:    payment.RequestID.String,
+			Currency:     payment.Currency,
+			Provider:     payment.Provider,
+			Amount:       int(payment.Amount),
+			PaymentDT:    int(payment.PaymentDt),
+			Bank:         payment.Bank,
+			DeliveryCost: int(payment.DeliveryCost),
+			GoodsTotal:   int(payment.GoodsTotal),
+			CustomFee:    int(payment.CustomFee),
+		}
+	}
+
+	for _, item := range items {
+		if itemsMap[item.OrderUid] == nil {
+			itemsMap[item.OrderUid] = []generator.Item{}
+		}
+		itemsMap[item.OrderUid] = append(itemsMap[item.OrderUid], generator.Item{
+			ChrtID:      int(item.ChrtID),
+			TrackNumber: item.TrackNumber,
+			Price:       int(item.Price),
+			Rid:         item.Rid,
+			Name:        item.Name,
+			Sale:        int(item.Sale),
+			Size:        item.Size,
+			TotalPrice:  int(item.TotalPrice),
+			NmID:        int(item.NmID),
+			Brand:       item.Brand,
+			Status:      int(item.Status),
+		})
+	}
+
+	var ordersList []*generator.Order
+	for _, order := range orders {
+		ordersList = append(ordersList, &generator.Order{
+			OrderUID:          order.OrderUid,
+			TrackNumber:       order.TrackNumber,
+			Entry:             order.Entry,
+			Delivery:          deliveriesMap[order.OrderUid],
+			Payment:           paymentsMap[order.OrderUid],
+			Items:             itemsMap[order.OrderUid],
+			Locale:            order.Locale,
+			InternalSignature: order.InternalSignature.String,
+			CustomerID:        order.CustomerID,
+			DeliveryService:   order.DeliveryService,
+			Shardkey:          order.Shardkey,
+			SmID:              int(order.SmID),
+			DateCreated:       order.DateCreated,
+			OofShard:          order.OofShard,
+		})
+	}
+
+	orderJSON, err := json.MarshalIndent(ordersList, "", "    ")
+	if err != nil {
+		log.Println("Error marshalling JSON:", err)
+	}
+
+	if _, err := w.Write([]byte(orderJSON)); err != nil {
+		log.Fatalln("Handler error: ShowOrdersHandler:", err)
+	}
+}
+
 func (a *App) RandomOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.PathValue("amount")
 	amount, err := strconv.Atoi(value)
 
 	if err != nil {
-		log.Println("Error in internal/app/app.go: line 27:", err)
+		log.Println("Error in internal/app/app.go: line 130:", err)
 		if _, err := w.Write([]byte("Ooops! Something went wrong!\n" +
 			"To generate random order(s), please consider using an INTEGER value.")); err != nil {
 			log.Fatalln("Handler error: RandomOrdersHandler:", err)

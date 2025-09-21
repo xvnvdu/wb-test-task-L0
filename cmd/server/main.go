@@ -24,6 +24,7 @@ func main() {
 	defer myApp.DB.Close()
 
 	http.HandleFunc("/", myApp.HomeHandler)
+	http.HandleFunc("/orders", myApp.ShowOrdersHandler)
 	http.HandleFunc("/random/{amount}", myApp.RandomOrdersHandler)
 
 	log.Println("Server is running on http://localhost:8080")
