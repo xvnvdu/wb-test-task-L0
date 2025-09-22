@@ -14,3 +14,6 @@ RETURNING *;
 
 -- name: GetDelivery :many
 SELECT * FROM delivery;
+
+-- name: GetSpecificDelivery :one
+SELECT * FROM delivery WHERE order_uid = $1;

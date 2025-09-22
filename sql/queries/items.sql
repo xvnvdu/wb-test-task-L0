@@ -18,3 +18,6 @@ RETURNING *;
 
 -- name: GetItems :many
 SELECT * FROM items;
+
+-- name: GetSpecificItems :many
+SELECT * FROM items WHERE order_uid = $1;

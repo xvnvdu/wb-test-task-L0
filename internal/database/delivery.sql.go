@@ -84,3 +84,23 @@ func (q *Queries) GetDelivery(ctx context.Context) ([]Delivery, error) {
 	}
 	return items, nil
 }
+
+const getSpecificDelivery = `-- name: GetSpecificDelivery :one
+SELECT order_uid, name, phone, zip, city, address, region, email FROM delivery WHERE order_uid = $1
+`
+
+func (q *Queries) GetSpecificDelivery(ctx context.Context, orderUid string) (Delivery, error) {
+	row := q.db.QueryRowContext(ctx, getSpecificDelivery, orderUid)
+	var i Delivery
+	err := row.Scan(
+		&i.OrderUid,
+		&i.Name,
+		&i.Phone,
+		&i.Zip,
+		&i.City,
+		&i.Address,
+		&i.Region,
+		&i.Email,
+	)
+	return i, err
+}

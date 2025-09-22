@@ -17,3 +17,6 @@ RETURNING *;
 
 -- name: GetPayment :many
 SELECT * FROM payments;
+
+-- name: GetSpecificPayment :one
+SELECT * FROM payments WHERE order_uid = $1;

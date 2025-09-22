@@ -98,3 +98,26 @@ func (q *Queries) GetOrders(ctx context.Context) ([]Order, error) {
 	}
 	return items, nil
 }
+
+const getSpecificOrder = `-- name: GetSpecificOrder :one
+SELECT order_uid, track_number, entry, locale, internal_signature, customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard FROM orders WHERE order_uid = $1
+`
+
+func (q *Queries) GetSpecificOrder(ctx context.Context, orderUid string) (Order, error) {
+	row := q.db.QueryRowContext(ctx, getSpecificOrder, orderUid)
+	var i Order
+	err := row.Scan(
+		&i.OrderUid,
+		&i.TrackNumber,
+		&i.Entry,
+		&i.Locale,
+		&i.InternalSignature,
+		&i.CustomerID,
+		&i.DeliveryService,
+		&i.Shardkey,
+		&i.SmID,
+		&i.DateCreated,
+		&i.OofShard,
+	)
+	return i, err
+}

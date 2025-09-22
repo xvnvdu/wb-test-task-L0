@@ -101,3 +101,44 @@ func (q *Queries) GetItems(ctx context.Context) ([]Item, error) {
 	}
 	return items, nil
 }
+
+const getSpecificItems = `-- name: GetSpecificItems :many
+SELECT item_id, order_uid, chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status FROM items WHERE order_uid = $1
+`
+
+func (q *Queries) GetSpecificItems(ctx context.Context, orderUid string) ([]Item, error) {
+	rows, err := q.db.QueryContext(ctx, getSpecificItems, orderUid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Item
+	for rows.Next() {
+		var i Item
+		if err := rows.Scan(
+			&i.ItemID,
+			&i.OrderUid,
+			&i.ChrtID,
+			&i.TrackNumber,
+			&i.Price,
+			&i.Rid,
+			&i.Name,
+			&i.Sale,
+			&i.Size,
+			&i.TotalPrice,
+			&i.NmID,
+			&i.Brand,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

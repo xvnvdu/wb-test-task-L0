@@ -17,3 +17,6 @@ RETURNING *;
 
 -- name: GetOrders :many
 SELECT * FROM orders;
+
+-- name: GetSpecificOrder :one
+SELECT * FROM orders WHERE order_uid = $1;

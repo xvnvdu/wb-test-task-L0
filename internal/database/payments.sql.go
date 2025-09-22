@@ -97,3 +97,26 @@ func (q *Queries) GetPayment(ctx context.Context) ([]Payment, error) {
 	}
 	return items, nil
 }
+
+const getSpecificPayment = `-- name: GetSpecificPayment :one
+SELECT order_uid, transaction, request_id, currency, provider, amount, payment_dt, bank, delivery_cost, goods_total, custom_fee FROM payments WHERE order_uid = $1
+`
+
+func (q *Queries) GetSpecificPayment(ctx context.Context, orderUid string) (Payment, error) {
+	row := q.db.QueryRowContext(ctx, getSpecificPayment, orderUid)
+	var i Payment
+	err := row.Scan(
+		&i.OrderUid,
+		&i.Transaction,
+		&i.RequestID,
+		&i.Currency,
+		&i.Provider,
+		&i.Amount,
+		&i.PaymentDt,
+		&i.Bank,
+		&i.DeliveryCost,
+		&i.GoodsTotal,
+		&i.CustomFee,
+	)
+	return i, err
+}
