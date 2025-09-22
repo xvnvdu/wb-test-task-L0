@@ -25,6 +25,7 @@ func main() {
 
 	http.HandleFunc("/", myApp.HomeHandler)
 	http.HandleFunc("/orders", myApp.ShowOrdersHandler)
+	http.HandleFunc("/orders/{order_uid}", myApp.GetOrderByIdHandler)
 	http.HandleFunc("/random/{amount}", myApp.RandomOrdersHandler)
 
 	log.Println("Server is running on http://localhost:8080")

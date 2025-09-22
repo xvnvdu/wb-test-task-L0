@@ -22,6 +22,93 @@ func (a *App) HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *App) GetOrderByIdHandler(w http.ResponseWriter, r *http.Request) {
+	order_uid := r.PathValue("order_uid")
+	queries := db.New(a.DB)
+
+	order, err := queries.GetSpecificOrder(r.Context(), order_uid)
+	if err != nil {
+		log.Fatalln("Error getting orders:", err)
+	}
+
+	delivery, err := queries.GetSpecificDelivery(r.Context(), order_uid)
+	if err != nil {
+		log.Fatalln("Error getting delivery:", err)
+	}
+
+	payments, err := queries.GetSpecificPayment(r.Context(), order_uid)
+	if err != nil {
+		log.Fatalln("Error getting payment:", err)
+	}
+
+	items, err := queries.GetSpecificItems(r.Context(), order_uid)
+	if err != nil {
+		log.Fatalln("Error getting items:", err)
+	}
+
+	var itemsList []generator.Item
+	for _, item := range items {
+		itemsList = append(itemsList, generator.Item{
+			ChrtID:      int(item.ChrtID),
+			TrackNumber: item.TrackNumber,
+			Price:       int(item.Price),
+			Rid:         item.Rid,
+			Name:        item.Name,
+			Sale:        int(item.Sale),
+			Size:        item.Size,
+			TotalPrice:  int(item.TotalPrice),
+			NmID:        int(item.NmID),
+			Brand:       item.Brand,
+			Status:      int(item.Status),
+		})
+	}
+
+	orderData := &generator.Order{
+		OrderUID:    order.OrderUid,
+		TrackNumber: order.TrackNumber,
+		Entry:       order.Entry,
+		Delivery: generator.Delivery{
+			Name:    delivery.Name,
+			Phone:   delivery.Phone,
+			Zip:     delivery.Zip,
+			City:    delivery.City,
+			Address: delivery.Address,
+			Region:  delivery.Region,
+			Email:   delivery.Email,
+		},
+		Payment: generator.Payment{
+			Transaction:  payments.Transaction,
+			RequestID:    payments.RequestID.String,
+			Currency:     payments.Currency,
+			Provider:     payments.Provider,
+			Amount:       int(payments.Amount),
+			PaymentDT:    int(payments.PaymentDt),
+			Bank:         payments.Bank,
+			DeliveryCost: int(payments.DeliveryCost),
+			GoodsTotal:   int(payments.GoodsTotal),
+			CustomFee:    int(payments.CustomFee),
+		},
+		Items:             itemsList,
+		Locale:            order.Locale,
+		InternalSignature: order.InternalSignature.String,
+		CustomerID:        order.CustomerID,
+		DeliveryService:   order.DeliveryService,
+		Shardkey:          order.Shardkey,
+		SmID:              int(order.SmID),
+		DateCreated:       order.DateCreated,
+		OofShard:          order.OofShard,
+	}
+
+	orderJSON, err := json.MarshalIndent(orderData, "", "    ")
+	if err != nil {
+		log.Println("Error marshalling JSON:", err)
+	}
+
+	if _, err := w.Write([]byte(orderJSON)); err != nil {
+		log.Fatalln("Handler error: GetOrderByIdHandler:", err)
+	}
+}
+
 func (a *App) ShowOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	queries := db.New(a.DB)
 
