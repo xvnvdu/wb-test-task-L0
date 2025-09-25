@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"orders/cmd/generator"
 	db "orders/internal/database"
+	"os"
 	"strconv"
 
 	_ "github.com/lib/pq"
@@ -17,7 +18,27 @@ type App struct {
 }
 
 func (a *App) HomeHandler(w http.ResponseWriter, r *http.Request) {
-	if _, err := w.Write([]byte("Hello there !")); err != nil {
+	if r.URL.Path != "/" {
+		notFound, err := os.ReadFile("web/templates/404.html")
+		if err != nil {
+			log.Println("Error reading file:", err)
+			http.Error(w, "Nothing's here...", http.StatusNotFound)
+			return
+		}
+		if _, err := w.Write([]byte(notFound)); err != nil {
+			log.Fatalln("Handler error: HomeHandler:", err)
+		}
+		return
+	}
+
+	html, err := os.ReadFile("web/templates/index.html")
+	if err != nil {
+		log.Println("Error reading file:", err)
+		http.Error(w, "Nothing's here...", http.StatusNotFound)
+		return
+	}
+
+	if _, err := w.Write([]byte(html)); err != nil {
 		log.Fatalln("Handler error: HomeHandler:", err)
 	}
 }

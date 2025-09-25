@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Поиск заказа</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            * {
+                font-family: "Press Start 2P";
+            }
+            body {
+                background-color: black;
+                color: #12cc12;
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+                overflow: hidden;
+                gap: 10px;
+            }
+            .search-container {
+                background: transparent;
+                border: 3px solid #242424;
+                padding: 5px 30px 10px;
+                margin: 0px 30px;
+                /* margin-top: 10px; */
+            }
+            .search-box {
+                background: black;
+                color: #12cc12;
+                padding: 15px;
+                width: 100%;
+                border: 3px solid grey;
+                box-sizing: border-box;
+            }
+            .search-box:focus {
+                outline: none;
+                box-shadow: none;
+                border: 3px solid #12cc12;
+            }
+            .search-box::placeholder {
+                color: #303030;
+            }
+            .instructions {
+                color: #525252;
+                font-size: 13px;
+            }
+            .order-info {
+                color: #12cc12;
+                display: none;
+            }
+            .order-container {
+                position: relative;
+                background: transparent;
+                border: 3px solid #242424;
+                padding: 30px 30px 0px;
+                margin: 0px 30px 15px;
+                flex-grow: 1;
+                flex-direction: column;
+                display: none;
+            }
+            .terminal-output {
+                color: #303030;
+                width: 100%;
+            }
+            .order-not-found {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: red;
+                font-size: 50px;
+                width: auto;
+                display: none;
+            }
+            .order-header {
+                justify-content: space-between;
+                border-bottom: 1px solid #12cc12;
+                display: flex;
+            }
+            .order-id {
+                font-size: 20px;
+            }
+            .track-number {
+                background: #12cc12;
+                color: black;
+                padding: 6px 10px;
+                font-size: 15px;
+            }
+            .order-body {
+            }
+            .section {
+                margin-top: 50px;
+                border-left: 1px solid #12cc12;
+                padding-bottom: 10px;
+            }
+            .section-title {
+                padding: 6px 10px;
+                color: black;
+                background: #12cc12;
+            }
+            .info-grid {
+                margin-left: 20px;
+                margin-right: 20px;
+                display: flex;
+                justify-content: space-between;
+            }
+            .info-item {
+                box-sizing: border-box;
+            }
+            .info-label {
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+            .table {
+                margin-top: 50px;
+                border-collapse: collapse;
+                table-layout: auto;
+            }
+            .items-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .items-table th {
+                text-align: left;
+                padding: 15px 40px 15px 20px;
+            }
+            .items-table td {
+                text-align: left;
+                padding: 3px 40px 3px 20px;
+            }
+            .items-body {
+                width: 100%;
+            }
+            .items-table tbody tr:hover {
+                background-color: #fe9233;
+                color: black;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="search-container">
+            <h1>Поиск заказа</h1>
+            <input
+                type="text"
+                class="search-box"
+                placeholder="~$ orderctl get <order_uid>"
+                id="orderInput"
+            />
+            <p class="instructions">
+                // Введите ID заказа и нажмите Enter для поиска
+            </p>
+        </div>
+
+        <div class="order-container" id="orderContainer">
+            <div class="terminal-output" id="terminalOutput"></div>
+            <div class="order-not-found" id="orderNotFound"></div>
+            <div class="order-info" id="orderInfo">
+                <div class="order-header">
+                    <div class="order-id">
+                        Заказ: <span id="orderUID"></span>
+                    </div>
+                    <div class="track-number">
+                        <span id="trackNumber"></span>
+                    </div>
+                </div>
+                <div class="order-body">
+                    <div class="section">
+                        <div class="section-title">Общая информация</div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Дата создания</div>
+                                <div class="info-value" id="creationDate"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Служба доставки</div>
+                                <div
+                                    class="info-value"
+                                    id="deliveryService"
+                                ></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Локаль</div>
+                                <div class="info-value" id="locale"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Внутренняя подпись</div>
+                                <div
+                                    class="info-value"
+                                    id="internalSignature"
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Доставка</div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Получатель</div>
+                                <div class="info-value" id="receiverName"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Телефон</div>
+                                <div class="info-value" id="phoneNumber"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Город</div>
+                                <div class="info-value" id="city"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Адрес</div>
+                                <div class="info-value" id="address"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Почта</div>
+                                <div class="info-value" id="email"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Оплата</div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Транзакция</div>
+                                <div class="info-value" id="transaction"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Валюта</div>
+                                <div class="info-value" id="currency"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Сумма</div>
+                                <div class="info-value" id="amount"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Доставка</div>
+                                <div class="info-value" id="deliveryCost"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Товары</div>
+                                <div class="info-value" id="itemsCost"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Комиссия</div>
+                                <div class="info-value" id="fee"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Банк</div>
+                                <div class="info-value" id="bank"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table">
+                        <div class="section-title">
+                            Товары [<span id="itemsAmount"></span>]
+                        </div>
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>Товар</th>
+                                    <th>Бренд</th>
+                                    <th>Цена</th>
+                                    <th>Размер</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody class="items-body" id="itemsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="/static/js/main.js"></script>
+    </body>
+</html>

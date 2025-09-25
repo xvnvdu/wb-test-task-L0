@@ -23,6 +23,9 @@ func main() {
 	}
 	defer myApp.DB.Close()
 
+	staticFileServer := http.FileServer(http.Dir("web/static"))
+	http.Handle("/static/", http.StripPrefix("/static/", staticFileServer))
+
 	http.HandleFunc("/", myApp.HomeHandler)
 	http.HandleFunc("/orders", myApp.ShowOrdersHandler)
 	http.HandleFunc("/orders/{order_uid}", myApp.GetOrderByIdHandler)

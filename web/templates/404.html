@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Поиск заказа</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            * {
+                font-family: "Press Start 2P";
+            }
+            body {
+                background-color: black;
+                color: red;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                overflow: hidden;
+            }
+            .code-404 {
+                white-space: pre;
+                font-size: 30px;
+            }
+            .page-not-found {
+                color: #525252;
+                font-size: 18px;
+                margin-right: 150px;
+            }
+            .main-page-link {
+                padding-top: 30px;
+                font-size: 18px;
+                color: #525252;
+            }
+            .link {
+                padding: 5px;
+                text-decoration: none;
+                color: #12cc12;
+            }
+            .link:hover {
+                background-color: #12cc12;
+                color: black;
+            }
+        </style>
+    </head>
+    <body>
+        <pre class="code-404">
+██╗  ██╗ ██████╗ ██╗  ██╗
+██║  ██║██╔═████╗██║  ██║
+███████║██║██╔██║███████║
+╚════██║████╔╝██║╚════██║
+     ██║╚██████╔╝     ██║
+     ╚═╝ ╚═════╝      ╚═╝
+        </pre>
+        <div class="page-not-found">// Упс! Такую страницу мы не сделали!</div>
+        <div class="main-page-link">
+            // Но вы можете вернуться на
+            <a href="/" class="link">главную страницу</a>
+        </div>
+    </body>
+</html>
