@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
+
 	"orders/cmd/generator"
 	k "orders/internal/kafka"
 	repo "orders/internal/repository"
-	"os"
-	"strconv"
 
 	_ "github.com/lib/pq"
 	"github.com/segmentio/kafka-go"
@@ -18,6 +19,7 @@ import (
 
 type App struct {
 	kafkaConsumer *kafka.Reader
+	kafkaProducer *kafka.Writer
 	repo          *repo.Repository
 }
 
@@ -102,11 +104,15 @@ func (a *App) RandomOrdersHandler(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 		orders := generator.MakeRandomOrder(amount)
 
-		a.repo.SaveToDB(orders, ctx)
-
 		orderJSON, err := json.MarshalIndent(orders, "", "    ")
 		if err != nil {
 			log.Println("Error marshalling JSON:", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		err = k.WriteMessage(a.kafkaProducer, ctx, orderJSON)
+		if err != nil {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -137,9 +143,11 @@ func NewApp(driverName, dataSourceName string) (*App, error) {
 
 	k.CreateTopic()
 	reader := k.CreateReader()
+	writer := k.CreateWriter()
+
 	go k.StartConsuming(reader, repo)
 
-	app := &App{kafkaConsumer: reader, repo: repo}
+	app := &App{kafkaConsumer: reader, kafkaProducer: writer, repo: repo}
 	return app, nil
 }
 
@@ -152,5 +160,10 @@ func (a App) Close() {
 	err = a.kafkaConsumer.Close()
 	if err != nil {
 		log.Fatalln("Kafka stream can't be closed:", err)
+	}
+
+	err = a.kafkaProducer.Close()
+	if err != nil {
+		log.Fatalln("Kafka producer can't be closed:", err)
 	}
 }
