@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("Can't create db connection:", err)
 	}
-	defer myApp.DB.Close()
+	defer myApp.Close()
 
 	staticFileServer := http.FileServer(http.Dir("web/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", staticFileServer))
