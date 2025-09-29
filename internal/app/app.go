@@ -7,15 +7,18 @@ import (
 	"log"
 	"net/http"
 	"orders/cmd/generator"
+	k "orders/internal/kafka"
 	repo "orders/internal/repository"
 	"os"
 	"strconv"
 
 	_ "github.com/lib/pq"
+	"github.com/segmentio/kafka-go"
 )
 
 type App struct {
-	repo *repo.Repository
+	kafkaConsumer *kafka.Reader
+	repo          *repo.Repository
 }
 
 func (a *App) HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +135,11 @@ func NewApp(driverName, dataSourceName string) (*App, error) {
 
 	repo := &repo.Repository{DB: db}
 
-	app := &App{repo: repo}
+	k.CreateTopic()
+	reader := k.CreateReader()
+	go k.StartConsuming(reader, repo)
+
+	app := &App{kafkaConsumer: reader, repo: repo}
 	return app, nil
 }
 
@@ -140,5 +147,10 @@ func (a App) Close() {
 	err := a.repo.DB.Close()
 	if err != nil {
 		log.Fatalln("Database connection can't be closed:", err)
+	}
+
+	err = a.kafkaConsumer.Close()
+	if err != nil {
+		log.Fatalln("Kafka stream can't be closed:", err)
 	}
 }
