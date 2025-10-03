@@ -3,8 +3,9 @@ package main
 import (
 	"log"
 	"net/http"
-	"orders/internal/app"
 	"os"
+
+	"orders/internal/app"
 
 	"github.com/joho/godotenv"
 )
@@ -12,12 +13,17 @@ import (
 func main() {
 	godotenv.Load()
 
-	dbURL := os.Getenv("GOOSE_DBSTRING")
+	dbURL := os.Getenv("DB_CONN_STRING")
 	if dbURL == "" {
-		log.Fatalln("GOOSE_DBSTRING is not found")
+		log.Fatalln("DB_CONN_STRING is not found")
 	}
 
-	myApp, err := app.NewApp("postgres", dbURL)
+	driver := os.Getenv("DRIVER")
+	if driver == "" {
+		log.Fatalln("DRIVER is not found")
+	}
+
+	myApp, err := app.NewApp(driver, dbURL)
 	if err != nil {
 		log.Fatalln("Can't create db connection:", err)
 	}
