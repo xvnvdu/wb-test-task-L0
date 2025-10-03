@@ -6,31 +6,46 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"time"
 
 	"orders/cmd/generator"
-	r "orders/internal/repository"
+	repo "orders/internal/repository"
 
 	"github.com/segmentio/kafka-go"
 )
 
 const (
 	topic   string = "orders"
-	address string = "localhost:9092"
+	address string = "kafka:9092"
 )
 
 func CreateReader() *kafka.Reader {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   []string{address},
 		Topic:     topic,
+		GroupID:   "orders-group",
 		Partition: 0,
 	})
 	return r
 }
 
 func CreateTopic() {
-	conn, err := kafka.Dial("tcp", address)
-	if err != nil {
-		log.Fatalln("Error creating kafka connection:", err)
+	var conn *kafka.Conn
+	var err error
+	maxRetries := 10
+
+	for i := 0; i < maxRetries; i++ {
+		conn, err = kafka.Dial("tcp", address)
+		if err == nil {
+			break
+		}
+		log.Printf("Error creating Kafka connection (attempt %d/%d): %v", i+1, maxRetries, err)
+
+		if i == maxRetries-1 {
+			log.Fatalln("Failed to connect to Kafka after all attempts.")
+		}
+
+		time.Sleep(time.Second * 5)
 	}
 	defer conn.Close()
 
@@ -58,19 +73,19 @@ func CreateTopic() {
 	if err != nil {
 		log.Fatalln("Error creating topic:", err)
 	}
+	log.Printf("Topic %s created successfuly on %s", topic, address)
 }
 
-func StartConsuming(r *kafka.Reader, repo *r.Repository) {
+func StartConsuming(r *kafka.Reader, repo *repo.Repository) {
+	ctx := context.Background()
 	for {
-		m, err := r.ReadMessage(context.Background())
+		m, err := r.FetchMessage(context.Background())
 		if err != nil {
 			log.Println("Error reading message:", err)
 			break
 		}
 		log.Printf("New message at topic/partition/offset %v/%v/%v: %s = %s\n",
 			m.Topic, m.Partition, m.Offset, string(m.Key), string(m.Value))
-
-		ctx := context.Background()
 
 		var orders []*generator.Order
 		err = json.Unmarshal(m.Value, &orders)
@@ -84,5 +99,11 @@ func StartConsuming(r *kafka.Reader, repo *r.Repository) {
 			log.Printf("Failed to save orders from Kafka message: %v\n", err)
 			continue
 		}
+
+		if err := r.CommitMessages(ctx, m); err != nil {
+			log.Fatalln("Error committing message:", err)
+		}
+		log.Printf("Committed message at topic/partition/offset %v/%v/%v\n",
+			m.Topic, m.Partition, m.Offset)
 	}
 }
