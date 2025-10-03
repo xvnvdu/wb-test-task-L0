@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"orders/cmd/generator"
+
 	k "orders/internal/kafka"
 	repo "orders/internal/repository"
 
@@ -55,7 +56,11 @@ func (a *App) GetOrderByIdHandler(w http.ResponseWriter, r *http.Request) {
 
 	orderData, err := a.repo.GetOrderById(order_uid, ctx)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		if err == sql.ErrNoRows {
+			http.Error(w, "Order not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
 	}
 
 	orderJSON, err := json.MarshalIndent(orderData, "", "    ")
