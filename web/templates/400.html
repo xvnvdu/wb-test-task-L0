@@ -24,15 +24,25 @@
                 align-items: center;
                 overflow: hidden;
             }
-            .code-404 {
+            .container {
+                display: flex;
+                flex-direction: column;
+                text-align: left;
+            }
+            .code-400 {
                 white-space: pre;
                 font-size: 30px;
             }
-            .page-not-found {
+            .something-went-wrong {
                 color: #525252;
                 font-size: 18px;
             }
-            .main-page-link {
+            .instruction {
+                padding-top: 30px;
+                font-size: 18px;
+                color: #525252;
+            }
+            .generate-orders-link {
                 padding-top: 30px;
                 font-size: 18px;
                 color: #525252;
@@ -49,21 +59,22 @@
         </style>
     </head>
     <body>
-        <pre class="code-404">
-██╗  ██╗ ██████╗ ██╗  ██╗
-██║  ██║██╔═████╗██║  ██║
-███████║██║██╔██║███████║
-╚════██║████╔╝██║╚════██║
-     ██║╚██████╔╝     ██║
-     ╚═╝ ╚═════╝      ╚═╝
+        <pre class="code-400">
+██╗  ██╗ ██████╗  ██████╗  
+██║  ██║██╔═████╗██╔═████╗
+███████║██║██╔██║██║██╔██║
+╚════██║████╔╝██║████╔╝██║
+     ██║╚██████╔╝╚██████╔╝
+     ╚═╝ ╚═════╝  ╚═════╝
         </pre>
         <div class="container">
-            <div class="page-not-found">
-                // Упс! Такую страницу мы не сделали!
+            <div class="something-went-wrong">// Упс! Что-то пошло не так!</div>
+            <div class="instruction">
+                // Для генерации заказов используйте ЦЕЛОЕ НАТУРАЛЬНОЕ ЧИСЛО
             </div>
-            <div class="main-page-link">
-                // Но вы можете вернуться на
-                <a href="/" class="link">главную страницу</a>
+            <div class="generate-orders-link">
+                // Например, вот так вы можете
+                <a href="/random/5" class="link">сгенерировать 5 заказов</a>
             </div>
         </div>
     </body>
