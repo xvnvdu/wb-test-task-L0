@@ -99,13 +99,27 @@ func (a *App) RandomOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.PathValue("amount")
 	amount, err := strconv.Atoi(value)
 
-	if err != nil {
-		log.Println("Error in internal/app/app.go: amount, err := strconv.Atoi(value):", err)
-		if _, err := w.Write([]byte("Ooops! Something went wrong!\n" +
-			"To generate random order(s), please consider using an INTEGER value.")); err != nil {
+	badRequest := func() {
+		result, err := os.ReadFile("web/templates/400.html")
+		if err != nil {
+			http.Error(w, "Nothing's here...", http.StatusNotFound)
+			log.Fatalln("Error reading file:", err)
+		}
+		if _, err := w.Write([]byte(result)); err != nil {
 			log.Fatalln("Handler error: RandomOrdersHandler:", err)
 		}
+	}
+
+	if err != nil {
+		log.Println("Error in internal/app/app.go: amount, err := strconv.Atoi(value):", err)
+		badRequest()
 	} else {
+		if amount <= 0 {
+			log.Println("Error creating orders: Value is equal or less than zero")
+			badRequest()
+			return
+		}
+
 		ctx := context.Background()
 		orders := generator.MakeRandomOrder(amount)
 
