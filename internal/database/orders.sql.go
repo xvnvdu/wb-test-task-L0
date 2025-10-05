@@ -60,6 +60,33 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) error 
 	return err
 }
 
+const getLatestOrders = `-- name: GetLatestOrders :many
+SELECT order_uid FROM orders ORDER BY date_created DESC LIMIT $1
+`
+
+func (q *Queries) GetLatestOrders(ctx context.Context, limit int32) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getLatestOrders, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var order_uid string
+		if err := rows.Scan(&order_uid); err != nil {
+			return nil, err
+		}
+		items = append(items, order_uid)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOrders = `-- name: GetOrders :many
 SELECT order_uid, track_number, entry, locale, internal_signature, customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard FROM orders
 `

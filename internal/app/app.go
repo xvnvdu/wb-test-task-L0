@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"orders/cmd/generator"
+	"orders/internal/cache"
 
 	k "orders/internal/kafka"
 	repo "orders/internal/repository"
@@ -22,6 +23,7 @@ type App struct {
 	kafkaConsumer *kafka.Reader
 	kafkaProducer *kafka.Writer
 	repo          *repo.Repository
+	cache         *cache.Cache
 }
 
 func (a *App) HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -143,22 +145,18 @@ func (a *App) RandomOrdersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewApp(driverName, dataSourceName string) (*App, error) {
-	db, err := sql.Open(driverName, dataSourceName)
+	repo, err := repo.NewRepository(driverName, dataSourceName)
 	if err != nil {
-		return nil, err
+		log.Fatalln("Error creating new repository:", err)
 	}
 
-	err = db.Ping()
+	ctx := context.Background()
+
+	cache := cache.NewCache()
+	err = cache.LoadInitialOrders(ctx, repo, cache.Capacity)
 	if err != nil {
-		mainErr := err
-
-		if closeErr := db.Close(); closeErr != nil {
-			log.Println("Database connection can't be closed:", closeErr)
-		}
-		return nil, mainErr
+		log.Fatalln("Error loading initial orders:", err)
 	}
-
-	repo := &repo.Repository{DB: db}
 
 	k.CreateTopic()
 	reader := k.CreateReader()
@@ -166,7 +164,7 @@ func NewApp(driverName, dataSourceName string) (*App, error) {
 
 	go k.StartConsuming(reader, repo)
 
-	app := &App{kafkaConsumer: reader, kafkaProducer: writer, repo: repo}
+	app := &App{kafkaConsumer: reader, kafkaProducer: writer, repo: repo, cache: cache}
 	return app, nil
 }
 

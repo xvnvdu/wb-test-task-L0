@@ -20,3 +20,6 @@ SELECT * FROM orders;
 
 -- name: GetSpecificOrder :one
 SELECT * FROM orders WHERE order_uid = $1;
+
+-- name: GetLatestOrders :many
+SELECT order_uid FROM orders ORDER BY date_created DESC LIMIT $1;

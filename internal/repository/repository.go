@@ -4,12 +4,32 @@ import (
 	"context"
 	"database/sql"
 	"log"
+
 	g "orders/cmd/generator"
 	db "orders/internal/database"
 )
 
 type Repository struct {
 	DB *sql.DB
+}
+
+func NewRepository(driverName, dataSourceName string) (*Repository, error) {
+	db, err := sql.Open(driverName, dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		mainErr := err
+
+		if closeErr := db.Close(); closeErr != nil {
+			log.Println("NewRepository: Database connection can't be closed:", closeErr)
+		}
+		return nil, mainErr
+	}
+
+	return &Repository{DB: db}, nil
 }
 
 func (r *Repository) SaveToDB(orders []*g.Order, ctx context.Context) error {
@@ -280,6 +300,28 @@ func (r *Repository) GetAllOrders(ctx context.Context) ([]*g.Order, error) {
 			DateCreated:       order.DateCreated,
 			OofShard:          order.OofShard,
 		})
+	}
+
+	return ordersList, nil
+}
+
+func (r *Repository) GetLatestOrders(ctx context.Context, limit int32) ([]*g.Order, error) {
+	queries := db.New(r.DB)
+
+	latestOrders, err := queries.GetLatestOrders(ctx, limit)
+	if err != nil {
+		log.Println("Error getting latest orders:", err)
+		return nil, err
+	}
+
+	var ordersList []*g.Order
+	for _, orderUID := range latestOrders {
+		orderData, err := r.GetOrderById(orderUID, ctx)
+		if err != nil {
+			log.Println("Error getting order data by id:", err)
+			continue
+		}
+		ordersList = append(ordersList, orderData)
 	}
 
 	return ordersList, nil
