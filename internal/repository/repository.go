@@ -6,14 +6,16 @@ import (
 	"log"
 
 	g "orders/cmd/generator"
+	c "orders/internal/cache"
 	db "orders/internal/database"
 )
 
 type Repository struct {
-	DB *sql.DB
+	DB    *sql.DB
+	Cache *c.Cache
 }
 
-func NewRepository(driverName, dataSourceName string) (*Repository, error) {
+func NewRepository(driverName, dataSourceName string, cache *c.Cache) (*Repository, error) {
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
 		return nil, err
@@ -28,8 +30,9 @@ func NewRepository(driverName, dataSourceName string) (*Repository, error) {
 		}
 		return nil, mainErr
 	}
+	log.Println("Database connection opened on db:5432")
 
-	return &Repository{DB: db}, nil
+	return &Repository{DB: db, Cache: cache}, nil
 }
 
 func (r *Repository) SaveToDB(orders []*g.Order, ctx context.Context) error {
@@ -116,91 +119,112 @@ func (r *Repository) SaveToDB(orders []*g.Order, ctx context.Context) error {
 				return err
 			}
 		}
-	}
 
+		err = r.Cache.UpdateCache(ctx, order)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func (r *Repository) GetOrderById(order_uid string, ctx context.Context) (*g.Order, error) {
-	queries := db.New(r.DB)
+func (r *Repository) GetOrderById(order_uid string, ctx context.Context, useCache bool) (*g.Order, error) {
+	var orderData *g.Order
 
-	order, err := queries.GetSpecificOrder(ctx, order_uid)
-	if err != nil {
-		log.Println("Error getting order:", err)
-		return nil, err
+	if useCache {
+		orderData, err := r.Cache.GetFromCache(ctx, order_uid)
+		if err != nil {
+			useCache = false
+		} else {
+			return orderData, nil
+		}
 	}
 
-	delivery, err := queries.GetSpecificDelivery(ctx, order_uid)
-	if err != nil {
-		log.Println("Error getting delivery:", err)
-		return nil, err
-	}
+	if !useCache {
+		queries := db.New(r.DB)
 
-	payments, err := queries.GetSpecificPayment(ctx, order_uid)
-	if err != nil {
-		log.Println("Error getting payment:", err)
-		return nil, err
-	}
+		order, err := queries.GetSpecificOrder(ctx, order_uid)
+		if err != nil {
+			log.Println("Error getting order:", err)
+			return nil, err
+		}
 
-	items, err := queries.GetSpecificItems(ctx, order_uid)
-	if err != nil {
-		log.Println("Error getting items:", err)
-		return nil, err
-	}
+		delivery, err := queries.GetSpecificDelivery(ctx, order_uid)
+		if err != nil {
+			log.Println("Error getting delivery:", err)
+			return nil, err
+		}
 
-	var itemsList []g.Item
-	for _, item := range items {
-		itemsList = append(itemsList, g.Item{
-			ChrtID:      int(item.ChrtID),
-			TrackNumber: item.TrackNumber,
-			Price:       int(item.Price),
-			Rid:         item.Rid,
-			Name:        item.Name,
-			Sale:        int(item.Sale),
-			Size:        item.Size,
-			TotalPrice:  int(item.TotalPrice),
-			NmID:        int(item.NmID),
-			Brand:       item.Brand,
-			Status:      int(item.Status),
-		})
-	}
+		payments, err := queries.GetSpecificPayment(ctx, order_uid)
+		if err != nil {
+			log.Println("Error getting payment:", err)
+			return nil, err
+		}
 
-	orderData := &g.Order{
-		OrderUID:    order.OrderUid,
-		TrackNumber: order.TrackNumber,
-		Entry:       order.Entry,
-		Delivery: g.Delivery{
-			Name:    delivery.Name,
-			Phone:   delivery.Phone,
-			Zip:     delivery.Zip,
-			City:    delivery.City,
-			Address: delivery.Address,
-			Region:  delivery.Region,
-			Email:   delivery.Email,
-		},
-		Payment: g.Payment{
-			Transaction:  payments.Transaction,
-			RequestID:    payments.RequestID.String,
-			Currency:     payments.Currency,
-			Provider:     payments.Provider,
-			Amount:       int(payments.Amount),
-			PaymentDT:    int(payments.PaymentDt),
-			Bank:         payments.Bank,
-			DeliveryCost: int(payments.DeliveryCost),
-			GoodsTotal:   int(payments.GoodsTotal),
-			CustomFee:    int(payments.CustomFee),
-		},
-		Items:             itemsList,
-		Locale:            order.Locale,
-		InternalSignature: order.InternalSignature.String,
-		CustomerID:        order.CustomerID,
-		DeliveryService:   order.DeliveryService,
-		Shardkey:          order.Shardkey,
-		SmID:              int(order.SmID),
-		DateCreated:       order.DateCreated,
-		OofShard:          order.OofShard,
-	}
+		items, err := queries.GetSpecificItems(ctx, order_uid)
+		if err != nil {
+			log.Println("Error getting items:", err)
+			return nil, err
+		}
 
+		var itemsList []g.Item
+		for _, item := range items {
+			itemsList = append(itemsList, g.Item{
+				ChrtID:      int(item.ChrtID),
+				TrackNumber: item.TrackNumber,
+				Price:       int(item.Price),
+				Rid:         item.Rid,
+				Name:        item.Name,
+				Sale:        int(item.Sale),
+				Size:        item.Size,
+				TotalPrice:  int(item.TotalPrice),
+				NmID:        int(item.NmID),
+				Brand:       item.Brand,
+				Status:      int(item.Status),
+			})
+		}
+
+		orderData = &g.Order{
+			OrderUID:    order.OrderUid,
+			TrackNumber: order.TrackNumber,
+			Entry:       order.Entry,
+			Delivery: g.Delivery{
+				Name:    delivery.Name,
+				Phone:   delivery.Phone,
+				Zip:     delivery.Zip,
+				City:    delivery.City,
+				Address: delivery.Address,
+				Region:  delivery.Region,
+				Email:   delivery.Email,
+			},
+			Payment: g.Payment{
+				Transaction:  payments.Transaction,
+				RequestID:    payments.RequestID.String,
+				Currency:     payments.Currency,
+				Provider:     payments.Provider,
+				Amount:       int(payments.Amount),
+				PaymentDT:    int(payments.PaymentDt),
+				Bank:         payments.Bank,
+				DeliveryCost: int(payments.DeliveryCost),
+				GoodsTotal:   int(payments.GoodsTotal),
+				CustomFee:    int(payments.CustomFee),
+			},
+			Items:             itemsList,
+			Locale:            order.Locale,
+			InternalSignature: order.InternalSignature.String,
+			CustomerID:        order.CustomerID,
+			DeliveryService:   order.DeliveryService,
+			Shardkey:          order.Shardkey,
+			SmID:              int(order.SmID),
+			DateCreated:       order.DateCreated,
+			OofShard:          order.OofShard,
+		}
+
+		err = r.Cache.UpdateCache(ctx, orderData)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return orderData, nil
 }
 
@@ -316,7 +340,7 @@ func (r *Repository) GetLatestOrders(ctx context.Context, limit int32) ([]*g.Ord
 
 	var ordersList []*g.Order
 	for _, orderUID := range latestOrders {
-		orderData, err := r.GetOrderById(orderUID, ctx)
+		orderData, err := r.GetOrderById(orderUID, ctx, false)
 		if err != nil {
 			log.Println("Error getting order data by id:", err)
 			continue

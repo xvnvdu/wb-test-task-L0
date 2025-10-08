@@ -6,12 +6,11 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"orders/cmd/generator"
 	"os"
 	"strconv"
 
-	"orders/cmd/generator"
-	"orders/internal/cache"
-
+	c "orders/internal/cache"
 	k "orders/internal/kafka"
 	repo "orders/internal/repository"
 
@@ -23,7 +22,6 @@ type App struct {
 	kafkaConsumer *kafka.Reader
 	kafkaProducer *kafka.Writer
 	repo          *repo.Repository
-	cache         *cache.Cache
 }
 
 func (a *App) HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +54,7 @@ func (a *App) GetOrderByIdHandler(w http.ResponseWriter, r *http.Request) {
 	order_uid := r.PathValue("order_uid")
 	ctx := context.Background()
 
-	orderData, err := a.repo.GetOrderById(order_uid, ctx)
+	orderData, err := a.repo.GetOrderById(order_uid, ctx, true)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Order not found", http.StatusNotFound)
@@ -145,17 +143,20 @@ func (a *App) RandomOrdersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewApp(driverName, dataSourceName string) (*App, error) {
-	repo, err := repo.NewRepository(driverName, dataSourceName)
+	ctx := context.Background()
+
+	cache := c.NewCache()
+
+	repo, err := repo.NewRepository(driverName, dataSourceName, cache)
 	if err != nil {
 		log.Fatalln("Error creating new repository:", err)
 	}
 
-	ctx := context.Background()
-
-	cache := cache.NewCache()
-	err = cache.LoadInitialOrders(ctx, repo, cache.Capacity)
-	if err != nil {
-		log.Fatalln("Error loading initial orders:", err)
+	latestOrders, err := repo.GetLatestOrders(ctx, repo.Cache.Capacity)
+	if err == nil {
+		repo.Cache.LoadInitialOrders(ctx, latestOrders, repo.Cache.Capacity)
+	} else {
+		log.Println("Cache is empty, running on redis:6379")
 	}
 
 	k.CreateTopic()
@@ -164,7 +165,7 @@ func NewApp(driverName, dataSourceName string) (*App, error) {
 
 	go k.StartConsuming(reader, repo)
 
-	app := &App{kafkaConsumer: reader, kafkaProducer: writer, repo: repo, cache: cache}
+	app := &App{kafkaConsumer: reader, kafkaProducer: writer, repo: repo}
 	return app, nil
 }
 
@@ -172,6 +173,11 @@ func (a App) Close() {
 	err := a.repo.DB.Close()
 	if err != nil {
 		log.Fatalln("Database connection can't be closed:", err)
+	}
+
+	err = a.repo.Cache.RedisClient.Close()
+	if err != nil {
+		log.Fatalln("Cache connection can't be closed:", err)
 	}
 
 	err = a.kafkaConsumer.Close()
