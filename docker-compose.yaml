@@ -58,3 +58,4 @@ volumes:
   backend_data:
   db_data:
   kafka_data:
+  redis_data:
