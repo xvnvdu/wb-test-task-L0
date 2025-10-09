@@ -9,6 +9,7 @@ FROM alpine:latest
 WORKDIR /app 
 COPY --from=builder /orders-service .
 COPY web ./web
+COPY docs ./docs
 
 EXPOSE 8080
 CMD ["./orders-service"]

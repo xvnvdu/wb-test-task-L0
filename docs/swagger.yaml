@@ -1,0 +1,208 @@
+swagger: "2.0"
+info:
+  title: Orders Microservice API
+  description: This is a simple documentation describing API endpoints for the orders microservice.
+  version: "1.0"
+
+host: localhost:8080
+
+tags:
+  - name: orders
+    description: Everything related orders themselves
+  - name: random
+    description: Describe random interactions with orders
+
+paths:
+  /orders:
+    get:
+      tags:
+        - orders
+      summary: List all orders
+      description: Lists all saved orders from the database in JSON format.
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/Order"
+
+  /orders/{order_uid}:
+    get:
+      tags:
+        - orders
+      summary: List specific order
+      description: Lists an order with specified {order_uid} in JSON format.
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/Order"
+        "404":
+          description: Order not found
+      parameters:
+        - name: order_uid
+          in: path
+          description: Order uid in string format
+          required: true
+          type: string
+
+  /random/{amount}:
+    post:
+      tags:
+        - random
+      summary: Generate orders with random parameters
+      description: Generates {amount} orders with random params, sends them to Kafka topic and returns generated orders params in JSON format.
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/Order"
+        "400":
+          description: To generate orders use an INTEGER value
+      parameters:
+        - name: amount
+          in: path
+          description: Integer amount of orders to generate
+          required: true
+          type: integer
+
+definitions:
+  Order:
+    properties:
+      order_uid:
+        type: string
+        example: "6462beb7-e333-4ba4-81e2-ffd237878c6b"
+      track_number:
+        type: string
+        example: "6OFCZU4IPP5IFE"
+      entry:
+        type: string
+        example: "WBIL_3"
+      delivery:
+        $ref: "#/definitions/Delivery"
+      payment:
+        $ref: "#/definitions/Payment"
+      items:
+        items:
+          $ref: "#/definitions/Item"
+        type: array
+      locale:
+        type: string
+        example: "ru"
+      internal_signature:
+        type: string
+        example: "49ec80af-aa2c-41c1-8841-d5c06fc33e58"
+      customer_id:
+        type: string
+        example: "f77eee9a-555c-4583-9ddf-7e027a212f98"
+      delivery_service:
+        type: string
+        example: "SDEK"
+      shardkey:
+        type: string
+        example: "7"
+      sm_id:
+        type: integer
+        example: 33
+      date_created:
+        type: string
+        example: "2025-10-08T18:26:22.629484Z"
+      oof_shard:
+        type: string
+        example: "6"
+    type: object
+
+  Delivery:
+    properties:
+      name:
+        type: string
+        example: "Eldora Hauck"
+      phone:
+        type: string
+        example: "7696921224"
+      zip:
+        type: string
+        example: "29686"
+      city:
+        type: string
+        example: "Las Vegas"
+      address:
+        type: string
+        example: "184 North Causewaytown"
+      region:
+        type: string
+        example: "Idaho"
+      email:
+        type: string
+        example: "evanscorkery@leuschke.net"
+    type: object
+
+  Payment:
+    properties:
+      transaction:
+        type: string
+        example: "BE430C44M63VOZ"
+      request_id:
+        type: string
+        example: "1"
+      currency:
+        type: string
+        example: "LKR"
+      provider:
+        type: string
+        example: "applepay"
+      amount:
+        type: integer
+        example: 2092
+      payment_dt:
+        type: integer
+        example: 2000482206
+      bank:
+        type: string
+        example: "Sber"
+      delivery_cost:
+        type: integer
+        example: 827
+      goods_total:
+        type: integer
+        example: 1198
+      custom_fee:
+        type: integer
+        example: 1198
+    type: object
+
+  Item:
+    properties:
+      chrt_id:
+        type: integer
+        example: 1198
+      track_number:
+        type: string
+        example: "6OFCZU4IPP5IFE"
+      price:
+        type: integer
+        example: 3330
+      rid:
+        type: string
+        example: "52356f50-bcef-4049-a780-2a4865001ba7"
+      name:
+        type: string
+        example: "Blue Fan Prime"
+      sale:
+        type: integer
+        example: 64
+      size:
+        type: string
+        example: "M"
+      total_price:
+        type: integer
+        example: 1198
+      nm_id:
+        type: integer
+        example: 3935568
+      brand:
+        type: string
+        example: "CitySourced"
+      status:
+        type: integer
+        example: 378
+    type: object

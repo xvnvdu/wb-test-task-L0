@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 	"net/http"
+	"orders/internal/app"
 	"os"
 
-	"orders/internal/app"
-
 	"github.com/joho/godotenv"
+	"github.com/swaggo/http-swagger"
 )
 
 func main() {
@@ -29,13 +29,21 @@ func main() {
 	}
 	defer myApp.Close()
 
+	// Отдаем статику
 	staticFileServer := http.FileServer(http.Dir("web/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", staticFileServer))
 
+	// Основные эндпоинты
 	http.HandleFunc("/", myApp.HomeHandler)
 	http.HandleFunc("/orders", myApp.ShowOrdersHandler)
 	http.HandleFunc("/orders/{order_uid}", myApp.GetOrderByIdHandler)
 	http.HandleFunc("/random/{amount}", myApp.RandomOrdersHandler)
+
+	// Отдаем файл с документацией и рендерим его по эндпоинту /docs
+	http.HandleFunc("/swagger.yaml", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./docs/swagger.yaml")
+	})
+	http.Handle("/docs/", httpSwagger.Handler(httpSwagger.URL("/swagger.yaml")))
 
 	log.Println("Server is running on http://localhost:8080")
 
