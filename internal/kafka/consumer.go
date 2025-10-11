@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"log"
 	"net"
+	"orders/internal/generator"
 	"strconv"
 	"time"
 
-	"orders/cmd/generator"
 	repo "orders/internal/repository"
 
 	"github.com/segmentio/kafka-go"

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"orders/cmd/generator"
+	"orders/internal/generator"
 	"os"
 	"strconv"
 

@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"log"
 
-	g "orders/cmd/generator"
 	c "orders/internal/cache"
 	db "orders/internal/database"
+	g "orders/internal/generator"
 )
 
 type Repository struct {

@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	g "orders/cmd/generator"
+	g "orders/internal/generator"
 
 	"github.com/redis/go-redis/v9"
 )
